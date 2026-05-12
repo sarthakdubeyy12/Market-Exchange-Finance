@@ -1,0 +1,89 @@
+{
+  "name": "RSI Screener Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule (8am Mon-Fri)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://127.0.0.1:8000/screener/rsi?universe=sp500&oversold=30&overbought=70",
+        "options": {}
+      },
+      "id": "run-screener",
+      "name": "Run RSI Screener",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst oversold   = data.oversold  || [];\nconst overbought = data.overbought || [];\n\nif (oversold.length === 0 && overbought.length === 0) {\n  return [{ json: { skip: true, message: 'No signals today' } }];\n}\n\nconst oversoldList   = oversold.map(s   => `  ${s.ticker.padEnd(8)} RSI: ${s.rsi}`).join('\\n');\nconst overboughtList = overbought.map(s => `  ${s.ticker.padEnd(8)} RSI: ${s.rsi}`).join('\\n');\n\nconst body = `\nRSI SCREENER ALERT — ${new Date().toDateString()}\n${'='.repeat(45)}\n\n🟢 OVERSOLD (RSI < 30) — Potential Buy Signals\n${oversoldList || '  None today'}\n\n🔴 OVERBOUGHT (RSI > 70) — Potential Sell Signals  \n${overboughtList || '  None today'}\n\n--\nFinance-Master Screener\n`;\n\nreturn [{ json: { skip: false, subject: `RSI Alert — ${oversold.length} oversold, ${overbought.length} overbought`, body } }];"
+      },
+      "id": "format-alert",
+      "name": "Format Alert",
+      "type": "n8n-nodes-base.code",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.skip }}",
+              "value2": false
+            }
+          ]
+        }
+      },
+      "id": "has-signals",
+      "name": "Has Signals?",
+      "type": "n8n-nodes-base.if",
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "dubeysarthak47@gmail.com",
+        "toEmail": "dubeysarthak47@gmail.com",
+        "subject": "={{ $json.subject }}",
+        "text": "={{ $json.body }}",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Send Alert Email",
+      "type": "n8n-nodes-base.emailSend",
+      "position": [1120, 200]
+    }
+  ],
+  "connections": {
+    "Schedule (8am Mon-Fri)": {
+      "main": [[{ "node": "Run RSI Screener", "type": "main", "index": 0 }]]
+    },
+    "Run RSI Screener": {
+      "main": [[{ "node": "Format Alert", "type": "main", "index": 0 }]]
+    },
+    "Format Alert": {
+      "main": [[{ "node": "Has Signals?", "type": "main", "index": 0 }]]
+    },
+    "Has Signals?": {
+      "main": [
+        [{ "node": "Send Alert Email", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

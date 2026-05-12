@@ -1,0 +1,105 @@
+{
+  "name": "Scheduled Watchlist Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule (9am Mon-Fri)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── CONFIGURE YOUR WATCHLIST HERE ──────────────────────────────\nconst WATCHLIST = [\n  'AAPL',\n  'TSLA',\n  'MSFT',\n  'NVDA',\n  'GOOGL',\n  'AMZN',\n  'META',\n  'JPM'\n];\n\nconst EMAIL = 'dubeysarthak47@gmail.com';\n// ────────────────────────────────────────────────────────────────\n\nreturn WATCHLIST.map(ticker => ({\n  json: { ticker, email: EMAIL }\n}));"
+      },
+      "id": "watchlist",
+      "name": "Watchlist",
+      "type": "n8n-nodes-base.code",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "options": {
+          "batchSize": 1,
+          "reset": false
+        }
+      },
+      "id": "split-batches",
+      "name": "Loop Over Tickers",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/report/send",
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "values": [
+            {
+              "name": "ticker",
+              "value": "={{ $json.ticker }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "start_date",
+              "value": "2024-01-01"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "send-report",
+      "name": "Send Report for Ticker",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconsole.log(`✅ Report sent for ${item.ticker} — Sentiment: ${item.sentiment} — Price: $${item.price}`);\nreturn [{ json: item }];"
+      },
+      "id": "log-result",
+      "name": "Log Result",
+      "type": "n8n-nodes-base.code",
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Schedule (9am Mon-Fri)": {
+      "main": [[{ "node": "Watchlist", "type": "main", "index": 0 }]]
+    },
+    "Watchlist": {
+      "main": [[{ "node": "Loop Over Tickers", "type": "main", "index": 0 }]]
+    },
+    "Loop Over Tickers": {
+      "main": [
+        [],
+        [{ "node": "Send Report for Ticker", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Report for Ticker": {
+      "main": [[{ "node": "Log Result", "type": "main", "index": 0 }]]
+    },
+    "Log Result": {
+      "main": [[{ "node": "Loop Over Tickers", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

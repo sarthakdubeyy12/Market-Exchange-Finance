@@ -1,0 +1,109 @@
+{
+  "name": "Daily Stock Analysis with LLM",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule (9am Mon-Fri)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8000/llm/summary/AAPL",
+        "options": {}
+      },
+      "id": "fetch-aapl",
+      "name": "Fetch AAPL Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8000/llm/summary/TSLA",
+        "options": {}
+      },
+      "id": "fetch-tsla",
+      "name": "Fetch TSLA Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [460, 480]
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.llm_prompt }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "groq-aapl",
+      "name": "Groq Analyze AAPL",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.llm_prompt }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "groq-tsla",
+      "name": "Groq Analyze TSLA",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "position": [700, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "const aapl = $('Groq Analyze AAPL').first().json;\nconst tsla = $('Groq Analyze TSLA').first().json;\n\nreturn [{\n  json: {\n    subject: 'Daily Stock Analysis - ' + new Date().toDateString(),\n    body: `AAPL Analysis:\\n${aapl.content || aapl.text || JSON.stringify(aapl)}\\n\\n---\\n\\nTSLA Analysis:\\n${tsla.content || tsla.text || JSON.stringify(tsla)}`\n  }\n}];"
+      },
+      "id": "merge-results",
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.code",
+      "position": [940, 390]
+    }
+  ],
+  "connections": {
+    "Schedule (9am Mon-Fri)": {
+      "main": [
+        [
+          { "node": "Fetch AAPL Summary", "type": "main", "index": 0 },
+          { "node": "Fetch TSLA Summary", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Fetch AAPL Summary": {
+      "main": [[{ "node": "Groq Analyze AAPL", "type": "main", "index": 0 }]]
+    },
+    "Fetch TSLA Summary": {
+      "main": [[{ "node": "Groq Analyze TSLA", "type": "main", "index": 0 }]]
+    },
+    "Groq Analyze AAPL": {
+      "main": [[{ "node": "Merge Results", "type": "main", "index": 0 }]]
+    },
+    "Groq Analyze TSLA": {
+      "main": [[{ "node": "Merge Results", "type": "main", "index": 1 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
