@@ -10,10 +10,11 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir)
 import ta_functions as ta
 
-import os
-
-# API base URL — uses env var in production, localhost in development
-API_BASE = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+# API base URL — reads from Streamlit secrets in production, falls back to localhost
+try:
+    API_BASE = st.secrets["API_BASE_URL"]
+except Exception:
+    API_BASE = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Finance Master", layout="wide")
