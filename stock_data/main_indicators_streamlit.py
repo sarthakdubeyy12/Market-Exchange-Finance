@@ -10,6 +10,11 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir)
 import ta_functions as ta
 
+import os
+
+# API base URL — uses env var in production, localhost in development
+API_BASE = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Finance Master", layout="wide")
 
@@ -108,7 +113,7 @@ if page == "📈 Stock Charts":
             with st.spinner(f"Analyzing {symbol} with AI — generating charts & sending report..."):
                 try:
                     resp = http_requests.post(
-                        "http://127.0.0.1:8000/report/send",
+                        f"{API_BASE}/report/send",
                         json={"ticker": symbol, "email": email_input,
                               "start_date": str(start.date())},
                         timeout=90,
@@ -194,7 +199,7 @@ elif page == "🔍 RSI Screener":
         with st.spinner(f"Scanning {universe.upper()} for RSI signals..."):
             try:
                 resp = http_requests.get(
-                    f"http://127.0.0.1:8000/screener/rsi",
+                    f"{API_BASE}/screener/rsi",
                     params={"universe": universe,
                             "oversold": oversold_thresh,
                             "overbought": overbought_thresh},
