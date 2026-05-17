@@ -137,10 +137,13 @@ if page == "📈 Stock Charts":
     # Download data
     @st.cache_data(ttl=300)
     def fetch_data(ticker, start, end):
-        raw = yf.download(ticker, start=start, end=end, auto_adjust=False, progress=False)
-        if isinstance(raw.columns, pd.MultiIndex):
-            raw.columns = raw.columns.get_level_values(0)
-        return raw.copy()
+        try:
+            raw = yf.download(ticker, start=start, end=end, auto_adjust=False, progress=False)
+            if isinstance(raw.columns, pd.MultiIndex):
+                raw.columns = raw.columns.get_level_values(0)
+            return raw.copy()
+        except Exception:
+            return pd.DataFrame()
 
     data = fetch_data(symbol, start, end)
     if data.empty:
