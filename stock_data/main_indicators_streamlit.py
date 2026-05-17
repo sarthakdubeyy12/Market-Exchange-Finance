@@ -109,6 +109,19 @@ if page == "📈 Stock Charts":
     # Email section
     st.sidebar.markdown("---")
     st.sidebar.subheader("📧 Email Analysis Report")
+
+    # Wake up Render API first
+    if st.sidebar.button("⚡ Wake Up API (click first)"):
+        with st.spinner("Waking up API server..."):
+            try:
+                r = http_requests.get(f"{API_BASE}/health", timeout=60)
+                if r.status_code == 200:
+                    st.sidebar.success("✅ API is awake! Now click Analyze & Send.")
+                else:
+                    st.sidebar.warning("API responded but may not be ready.")
+            except Exception:
+                st.sidebar.error("API is still waking up. Wait 30 seconds and try again.")
+
     email_input = st.sidebar.text_input("Your Email Address", placeholder="you@gmail.com")
 
     if st.sidebar.button("🔍 Analyze & Send Report"):
