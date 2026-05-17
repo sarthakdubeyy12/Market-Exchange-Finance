@@ -121,7 +121,7 @@ if page == "📈 Stock Charts":
                         f"{API_BASE}/report/send",
                         json={"ticker": symbol, "email": email_input,
                               "start_date": str(start.date())},
-                        timeout=90,
+                        timeout=120,
                     )
                     if resp.status_code == 200:
                         result = resp.json()
@@ -135,17 +135,20 @@ if page == "📈 Stock Charts":
                         st.info(result.get("analysis", ""))
                     else:
                         st.sidebar.error(f"Error: {resp.json().get('detail', 'Unknown error')}")
-                except Exception:
-                    st.sidebar.error("Could not connect to API. Make sure the API server is running.")
+                except Exception as e:
+                    st.sidebar.error(f"API Error: {str(e)[:100]}. The API may be waking up (free tier) — try again in 30 seconds.")
 
     # Download data
     @st.cache_data(ttl=300)
     def fetch_data(ticker, start, end):
         try:
-            raw = yf.download(ticker, start=start, end=end, auto_adjust=False, progress=False)
+            raw = yf.download(ticker, start=start, end=end, progress=False)
             if isinstance(raw.columns, pd.MultiIndex):
                 raw.columns = raw.columns.get_level_values(0)
-            return raw.copy()
+            # Ensure Adj Close exists
+            if "Adj Close" not in raw.columns and "Close" in raw.columns:
+                raw["Adj Close"] = raw["Close"]
+            return raw.dropna(how="all").copy()
         except Exception:
             return pd.DataFrame()
 
