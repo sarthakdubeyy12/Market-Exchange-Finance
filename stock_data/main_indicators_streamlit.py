@@ -25,7 +25,11 @@ page = st.sidebar.radio("📌 Navigation", ["📈 Stock Charts", "🔍 RSI Scree
 # ── Load ticker CSVs ──────────────────────────────────────────────────────────
 @st.cache_data
 def load_all_tickers():
+    # Works both locally and on Streamlit Cloud
     base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # Fallback: try current working directory
+    if not os.path.exists(os.path.join(base, "nasdaq_tickers.csv")):
+        base = os.getcwd()
     us_files = {
         "NASDAQ":      "nasdaq_tickers.csv",
         "NYSE":        "nyse_tickers.csv",
