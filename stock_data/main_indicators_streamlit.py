@@ -14,7 +14,7 @@ import ta_functions as ta
 try:
     API_BASE = st.secrets["API_BASE_URL"]
 except Exception:
-    API_BASE = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+    API_BASE = os.getenv("API_BASE_URL", "https://stocks-market-exchange-finance.onrender.com")
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Finance Master", layout="wide")
